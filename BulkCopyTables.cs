@@ -182,6 +182,11 @@ namespace FMSoftlab.Datamigration
                 await BulkCopy(sch, tbname); 
             }
         }
+        public async Task Execute(string schemaname, string tablename)
+        {
+            SetupMigration_DestinationTableMustBeEmpty();
+            await BulkCopy(schemaname, tablename);
+        }
         private IEnumerable<string> GetMapping(string stringSource, string stringTarget, string tableowner, string tableName)
         {
             IEnumerable<string> sourceColumns = GetSourceColumns(stringSource, tableowner, tableName);

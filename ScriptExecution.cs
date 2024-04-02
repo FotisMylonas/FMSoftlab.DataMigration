@@ -38,7 +38,10 @@ namespace FMSoftlab.Datamigration
             s.ConnectionContext.StatementTimeout = AppSettings.RuntimeSettings.CommandTimeout;
             Database db = s.Databases[conbuild.InitialCatalog];
             string sql = SqlScripts.GetVarious(scriptKey);
+            Log?.LogDebug($"executing scriptKey:{scriptKey}");
+            Log?.LogDebug(sql);
             db.ExecuteNonQuery(sql, ExecutionTypes.Default);
+            Log?.LogDebug($"finished executing scriptKey:{scriptKey}");
         }
     }
 
@@ -62,6 +65,8 @@ namespace FMSoftlab.Datamigration
         public void Execute(string scriptKey, object paramsObject)
         {
             var sql = SqlScripts.GetVarious(scriptKey);
+            Log?.LogDebug($"executing scriptKey:{scriptKey}");
+            Log?.LogDebug(sql);
             using (SqlConnection con = new SqlConnection(ConnectionString))
             {
                 if (paramsObject != null)
@@ -71,6 +76,7 @@ namespace FMSoftlab.Datamigration
                 }
                 else con.Execute(sql, commandTimeout: AppSettings.RuntimeSettings.CommandTimeout);
             }
+            Log?.LogDebug($"finished executing scriptKey:{scriptKey}");
         }
     }
 }

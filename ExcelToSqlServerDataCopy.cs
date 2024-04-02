@@ -16,12 +16,12 @@ namespace FMSoftlab.Datamigration
     {
         public ExcelToSqlServerDataCopy(IApplicationSettings settings, TSqlScriptsManager tSqlScriptsManager, ILogger log, string filename, string sheet, string destSql, string destConnectionString) : base(settings, tSqlScriptsManager, log)
         {
-            SourceData = new ExcelDataProvider(filename, sheet);
+            SourceData = new ExcelDataProvider(filename, sheet, log);
             DestInfo = new() { Sql = destSql, Connection = destConnectionString };
         }
         public ExcelToSqlServerDataCopy(IApplicationSettings settings, TSqlScriptsManager tSqlScriptsManager, ILogger log, string filename, string sheet, string destConnectionString, bool identityInsert) : base(settings, tSqlScriptsManager, log)
         {
-            SourceData = new ExcelDataProvider(filename, sheet);
+            SourceData = new ExcelDataProvider(filename, sheet, log);
             string identityInsertTable = string.Empty;
             if (identityInsert)
             {

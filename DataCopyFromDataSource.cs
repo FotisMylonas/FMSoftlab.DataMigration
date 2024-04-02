@@ -20,7 +20,7 @@ namespace FMSoftlab.Datamigration
             DateTime? res = null;
             if (value != null && value.HasValue)
             {
-                res = value.GetValueOrDefault() >= DateTime.Parse("1920-01-01") && value.GetValueOrDefault() <= DateTime.Parse("2050-01-01") ? value.GetValueOrDefault() : null;
+                res = value.GetValueOrDefault() >= DateTime.Parse("1910-01-01") && value.GetValueOrDefault() <= DateTime.Parse("2050-01-01") ? value.GetValueOrDefault() : null;
             }
             return res;
         }
