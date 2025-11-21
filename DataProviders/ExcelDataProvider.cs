@@ -14,6 +14,24 @@ using System.Text;
 namespace FMSoftlab.Datamigration
 {
 
+    // Custom attribute to specify date format for string properties
+    [AttributeUsage(AttributeTargets.Property)]
+    public class DecimalFormatAttribute : Attribute
+    {
+        public string Format { get; }
+        public string GroupSeparator { get; set; } = ",";
+        public string DecimalSeparator { get; set; } = ".";
+
+
+        public DecimalFormatAttribute(string format, string groupSeperator, string decimalSeperator)
+        {
+            Format = format;
+            GroupSeparator = groupSeperator;
+            DecimalSeparator = decimalSeperator;
+        }
+    }
+
+
 
     // Custom attribute to specify date format for string properties
     [AttributeUsage(AttributeTargets.Property)]
@@ -27,7 +45,7 @@ namespace FMSoftlab.Datamigration
         }
     }
 
-    public static class ExcelMapperDateConverter
+    public static class ExcelMapperLocalizationConverter
     {
         public static void SetupExcelMapper(this ExcelMapper mapper, Type type)
         {
@@ -35,41 +53,86 @@ namespace FMSoftlab.Datamigration
 
             foreach (var property in properties)
             {
-                if (property.PropertyType == typeof(DateTime)
-                    || property.PropertyType == typeof(DateTime?)
-                    )
+                if (property.PropertyType == typeof(decimal))
                 {
-                    var dateFormatAttribute = property.GetCustomAttribute<DateFormatAttribute>();
-                    if (dateFormatAttribute != null)
+                    var decimalFormatAttribute = property.GetCustomAttribute<DecimalFormatAttribute>();
+                    if (decimalFormatAttribute != null)
                     {
-                        string format = dateFormatAttribute.Format;
-                        IFormatProvider provider = CultureInfo.InvariantCulture;
+                        // Build custom number format from attribute
+                        var nfi = new NumberFormatInfo
+                        {
+                            NumberGroupSeparator = decimalFormatAttribute.GroupSeparator,
+                            NumberDecimalSeparator = decimalFormatAttribute.DecimalSeparator
+                        };
+
                         ColumnInfo cinfo = mapper.AddMapping(type, property.Name, property.Name);
+
                         cinfo.SetPropertyUsing(value =>
                         {
-                            object res = null;
-                            if (value!=null)
+                            if (value == null)
+                                return null;
+
+                            if (value is string stringValue)
                             {
-                                if (value is string stringValue)
+                                if (decimal.TryParse(stringValue,
+                                                     NumberStyles.Number,
+                                                     nfi,
+                                                     out decimal parsedDecimal))
                                 {
-                                    if (DateTime.TryParseExact(stringValue, format, provider, DateTimeStyles.None, out DateTime result))
+                                    return parsedDecimal;
+                                }
+
+                                // Fallback to invariant culture
+                                if (decimal.TryParse(stringValue,
+                                                     NumberStyles.Number,
+                                                     CultureInfo.InvariantCulture,
+                                                     out parsedDecimal))
+                                {
+                                    return parsedDecimal;
+                                }
+
+                                return null; // or throw
+                            }
+
+                            return Convert.ChangeType(value, typeof(decimal), CultureInfo.InvariantCulture);
+                        });
+                    }
+
+                    if (property.PropertyType == typeof(DateTime)
+                    || property.PropertyType == typeof(DateTime?)
+                    )
+                    {
+                        var dateFormatAttribute = property.GetCustomAttribute<DateFormatAttribute>();
+                        if (dateFormatAttribute != null)
+                        {
+                            string format = dateFormatAttribute.Format;
+                            IFormatProvider provider = CultureInfo.InvariantCulture;
+                            ColumnInfo cinfo = mapper.AddMapping(type, property.Name, property.Name);
+                            cinfo.SetPropertyUsing(value =>
+                            {
+                                object res = null;
+                                if (value!=null)
+                                {
+                                    if (value is string stringValue)
                                     {
-                                        res=Convert.ChangeType(result, typeof(DateTime), provider);
+                                        if (DateTime.TryParseExact(stringValue, format, provider, DateTimeStyles.None, out DateTime result))
+                                        {
+                                            res=Convert.ChangeType(result, typeof(DateTime), provider);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        res=Convert.ChangeType(value, typeof(DateTime), CultureInfo.InvariantCulture);
                                     }
                                 }
-                                else
-                                {
-                                    res=Convert.ChangeType(value, typeof(DateTime), CultureInfo.InvariantCulture);
-                                }
-                            }
-                            return res;
-                        });
+                                return res;
+                            });
+                        }
                     }
                 }
             }
         }
     }
-
 
     public class ExcelDataProvider : ISourceDataProvider
     {
@@ -172,3 +235,4 @@ namespace FMSoftlab.Datamigration
         }
     }
 }
+
