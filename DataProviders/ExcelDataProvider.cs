@@ -18,14 +18,11 @@ namespace FMSoftlab.Datamigration
     [AttributeUsage(AttributeTargets.Property)]
     public class DecimalFormatAttribute : Attribute
     {
-        public string Format { get; }
         public string GroupSeparator { get; set; } = ",";
         public string DecimalSeparator { get; set; } = ".";
 
-
         public DecimalFormatAttribute(string format, string groupSeperator, string decimalSeperator)
         {
-            Format = format;
             GroupSeparator = groupSeperator;
             DecimalSeparator = decimalSeperator;
         }
@@ -90,44 +87,42 @@ namespace FMSoftlab.Datamigration
                                 {
                                     return parsedDecimal;
                                 }
-
                                 return null; // or throw
                             }
-
                             return Convert.ChangeType(value, typeof(decimal), CultureInfo.InvariantCulture);
                         });
                     }
+                }
 
-                    if (property.PropertyType == typeof(DateTime)
-                    || property.PropertyType == typeof(DateTime?)
-                    )
+                if (property.PropertyType == typeof(DateTime)
+                || property.PropertyType == typeof(DateTime?)
+                )
+                {
+                    var dateFormatAttribute = property.GetCustomAttribute<DateFormatAttribute>();
+                    if (dateFormatAttribute != null)
                     {
-                        var dateFormatAttribute = property.GetCustomAttribute<DateFormatAttribute>();
-                        if (dateFormatAttribute != null)
+                        string format = dateFormatAttribute.Format;
+                        IFormatProvider provider = CultureInfo.InvariantCulture;
+                        ColumnInfo cinfo = mapper.AddMapping(type, property.Name, property.Name);
+                        cinfo.SetPropertyUsing(value =>
                         {
-                            string format = dateFormatAttribute.Format;
-                            IFormatProvider provider = CultureInfo.InvariantCulture;
-                            ColumnInfo cinfo = mapper.AddMapping(type, property.Name, property.Name);
-                            cinfo.SetPropertyUsing(value =>
+                            object res = null;
+                            if (value!=null)
                             {
-                                object res = null;
-                                if (value!=null)
+                                if (value is string stringValue)
                                 {
-                                    if (value is string stringValue)
+                                    if (DateTime.TryParseExact(stringValue, format, provider, DateTimeStyles.None, out DateTime result))
                                     {
-                                        if (DateTime.TryParseExact(stringValue, format, provider, DateTimeStyles.None, out DateTime result))
-                                        {
-                                            res=Convert.ChangeType(result, typeof(DateTime), provider);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        res=Convert.ChangeType(value, typeof(DateTime), CultureInfo.InvariantCulture);
+                                        res=Convert.ChangeType(result, typeof(DateTime), provider);
                                     }
                                 }
-                                return res;
-                            });
-                        }
+                                else
+                                {
+                                    res=Convert.ChangeType(value, typeof(DateTime), CultureInfo.InvariantCulture);
+                                }
+                            }
+                            return res;
+                        });
                     }
                 }
             }
